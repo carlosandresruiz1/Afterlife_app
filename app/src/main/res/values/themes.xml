@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Afterlife" parent="android:Theme.Material.Light.NoActionBar" />
+    <item name="colorPrimary" type="color">@color/cyberpunk_yellow</item>
+        <item name="colorPrimaryVariant" type="color">@color/cyberpunk_blue</item>
+        <item name="colorOnPrimary" type="color">@color/cyberpunk_black</item>
+        <item name="colorSecondary" type="color">@color/cyberpunk_pink</item>
+        <item name="colorSecondaryVariant" type="color">@color/cyberpunk_white</item>
+        <item name="colorOnSecondary" type="color">@color/cyberpunk_black</item>
+
+    <style name="Theme.Aft" parent="android:Theme.Material.Light.NoActionBar" />
+    <item name="colorPri" type="color">@color/cyberpunk_yellow</item>
+
+
+    <item name="colorSec" type="color">@color/cyberpunk_pink</item>
+
+</resources>
