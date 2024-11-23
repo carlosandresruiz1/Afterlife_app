@@ -61,4 +61,5 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
+    implementation("com.google.android.gms:play-services-auth:20.2.0")
 }

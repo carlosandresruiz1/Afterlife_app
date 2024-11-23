@@ -45,14 +45,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.compose.ui.viewinterop.AndroidView
 import com.example.afterlife.ui.theme.AfterlifeTheme
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.MapView
+import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import androidx.compose.runtime.DisposableEffect
 
 class ProductListActivity : ComponentActivity(), OnMapReadyCallback {
     private lateinit var dbHelper: DatabaseHelper
@@ -210,6 +214,7 @@ fun ProductList(dbHelper: DatabaseHelper) {
 fun MapPlaceholder() {
     val context = LocalContext.current
     var coordinates by remember { mutableStateOf("Coordinates: Unknown") }
+    val mapView = remember { MapView(context) }
 
     LaunchedEffect(Unit) {
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -217,7 +222,23 @@ fun MapPlaceholder() {
             val location: Location? = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
             location?.let {
                 coordinates = "Latitude: %.4f, Longitude: %.4f".format(it.latitude, it.longitude)
+                mapView.getMapAsync { googleMap ->
+                    val currentLatLng = LatLng(it.latitude, it.longitude)
+                    googleMap.addMarker(MarkerOptions().position(currentLatLng).title("Current Location"))
+                    googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
+                }
             }
+        }
+    }
+
+    DisposableEffect(mapView) {
+        mapView.onCreate(null)
+        mapView.onResume()
+        MapsInitializer.initialize(context)
+
+        onDispose {
+            mapView.onPause()
+            mapView.onDestroy()
         }
     }
 
@@ -237,15 +258,7 @@ fun MapPlaceholder() {
             }
             Text(coordinates)
             Spacer(modifier = Modifier.height(16.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-            ) {
-                // Interactive map will be here
-                Text("Interactive Map Placeholder", modifier = Modifier.align(Alignment.Center))
-            }
+            AndroidView(factory = { mapView })
         }
     }
 }
