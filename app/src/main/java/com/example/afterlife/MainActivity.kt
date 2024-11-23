@@ -18,9 +18,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,8 +31,20 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.afterlife.ui.theme.AfterlifeTheme
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.tasks.Task
+import kotlinx.coroutines.launch
+import android.util.Log
 
 class MainActivity : ComponentActivity() {
+    private lateinit var googleSignInClient: GoogleSignInClient
+    private val RC_SIGN_IN = 9001
+    private var loginResult = mutableStateOf("")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -39,11 +53,19 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     LoginPage(
                         modifier = Modifier.padding(innerPadding),
-                        onRegisterClick = { navigateToRegister() }
+                        onRegisterClick = { navigateToRegister() },
+                        loginResult = loginResult
                     )
                 }
             }
         }
+
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.google_auth_default_web_client_id))
+            .requestEmail()
+            .build()
+
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
     }
 
     private fun navigateToRegister() {
@@ -60,14 +82,41 @@ class MainActivity : ComponentActivity() {
         val intent = Intent(this, SuperUserActivity::class.java)
         startActivity(intent)
     }
+
+    fun signInWithGoogle() {
+        val signInIntent = googleSignInClient.signInIntent
+        startActivityForResult(signInIntent, RC_SIGN_IN)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == RC_SIGN_IN) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            handleSignInResult(task)
+        }
+    }
+
+    private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
+        try {
+            val account = completedTask.getResult(ApiException::class.java)
+            // Signed in successfully, show authenticated UI.
+            navigateToProductList()
+        } catch (e: ApiException) {
+            // Sign in failed, handle the error
+            val errorMessage = "Login Failed: ${e.statusCode} - ${e.localizedMessage}"
+            loginResult.value = errorMessage
+            Log.e("MainActivity", errorMessage, e)
+        }
+    }
 }
 
 @Composable
-fun LoginPage(modifier: Modifier = Modifier, onRegisterClick: () -> Unit) {
+fun LoginPage(modifier: Modifier = Modifier, onRegisterClick: () -> Unit, loginResult: MutableState<String>) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var loginResult by remember { mutableStateOf("") }
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     fun onLoginSuccess() {
         context.startActivity(Intent(context, ProductListActivity::class.java))
@@ -102,13 +151,11 @@ fun LoginPage(modifier: Modifier = Modifier, onRegisterClick: () -> Unit) {
         Button(
             onClick = {
                 if (username == "user" && password == "password") {
-                    loginResult = "Login Successful"
                     onLoginSuccess()
                 } else if (username == "super" && password == "password") {
-                    loginResult = "Super User Login Successful"
                     onSuperUserLoginSuccess()
                 } else {
-                    loginResult = "Login Failed"
+                    loginResult.value = "Login Failed"
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -116,7 +163,18 @@ fun LoginPage(modifier: Modifier = Modifier, onRegisterClick: () -> Unit) {
             Text("Login")
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Text(loginResult)
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    (context as MainActivity).signInWithGoogle()
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Login with Google")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(loginResult.value)
         Spacer(modifier = Modifier.height(16.dp))
         TextButton(
             onClick = onRegisterClick,
@@ -131,6 +189,6 @@ fun LoginPage(modifier: Modifier = Modifier, onRegisterClick: () -> Unit) {
 @Composable
 fun LoginPagePreview() {
     AfterlifeTheme {
-        LoginPage(onRegisterClick = {})
+        LoginPage(onRegisterClick = {}, loginResult = remember { mutableStateOf("") })
     }
 }

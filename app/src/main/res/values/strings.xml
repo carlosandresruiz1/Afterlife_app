@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">Afterlife</string>
     <string name="google_auth_default_web_client_id">941154762456-igec0hq385nk2l1182ha1a2v345q94ba.apps.googleusercontent.com</string>
-    <string name="google_sign_in_button">Sign in with Google</string>
+    <string name="google_sign_in_button">Sign</string>
 </resources>
